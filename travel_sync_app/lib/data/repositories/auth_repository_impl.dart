@@ -3,6 +3,8 @@ import 'package:dartz/dartz.dart';
 import '../../core/error/failures.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/network/network_info.dart';
+import '../../core/services/offline_service.dart';
+import '../../core/services/server_connectivity_manager.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/local/local_data_source.dart';
 import '../datasources/remote/remote_data_source.dart';
@@ -25,19 +27,51 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     bool rememberMe = false,
   }) async {
-    if (await networkInfo.isConnected) {
+    print('\n🔐 === AUTHENTICATION ATTEMPT ===');
+    print('Email: $email');
+    
+    // Check server connectivity first
+    final connectivityManager = ServerConnectivityManager.instance;
+    final isServerAvailable = await connectivityManager.checkConnectivity();
+    
+    if (isServerAvailable && connectivityManager.workingServerUrl != null) {
       try {
+        print('🌐 Attempting online authentication...');
         final user = await remoteDataSource.login({
           'email': email,
           'password': password,
         });
         await localDataSource.cacheUser(user);
+        print('✅ Online authentication successful');
         return Right(user);
       } on ServerException catch (e) {
-        return Left(ServerFailure(message: e.message));
+        print('❌ Server authentication failed: ${e.message}');
+        print('🔄 Falling back to offline mode...');
+        return _attemptOfflineLogin(email, password);
+      } catch (e) {
+        print('❌ Unexpected authentication error: $e');
+        return _attemptOfflineLogin(email, password);
       }
     } else {
-      return const Left(NetworkFailure());
+      print('📱 Server unavailable, using offline mode...');
+      return _attemptOfflineLogin(email, password);
+    }
+  }
+  
+  Future<Either<Failure, UserModel>> _attemptOfflineLogin(String email, String password) async {
+    try {
+      OfflineService.enableOfflineMode();
+      final mockResponse = await OfflineService.mockLogin(email, password);
+      
+      if (mockResponse['success'] == true) {
+        final user = UserModel.fromJson(mockResponse['user']);
+        await localDataSource.cacheUser(user);
+        return Right(user);
+      } else {
+        return Left(AuthFailure(message: mockResponse['message']));
+      }
+    } catch (e) {
+      return Left(AuthFailure(message: 'Offline login failed: $e'));
     }
   }
 

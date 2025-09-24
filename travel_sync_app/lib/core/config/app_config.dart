@@ -1,11 +1,13 @@
+import 'environment.dart';
+
 class AppConfig {
-  static const String appName = 'TravelSync';
+  static const String appName = 'Yaathri';
   static const String appVersion = '1.0.0';
   
-  // API Configuration
-  static const String baseUrl = 'http://localhost:5000/api';
+  // API Configuration (uses environment-based URLs)
+  static String get baseUrl => EnvironmentConfig.baseUrl;
+  static String get apiUrl => EnvironmentConfig.apiUrl;
   static const String apiVersion = 'v1';
-  static const String apiUrl = '$baseUrl/$apiVersion';
   
   // Cloudinary Configuration
   static const String cloudinaryCloudName = 'dsowqiw1n';

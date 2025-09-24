@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../data/models/expense_model.dart';
 import '../../../domain/repositories/expense_repository.dart';
+import '../../../core/services/offline_service.dart';
 import '../../../core/error/failures.dart';
 
 part 'expense_event.dart';
@@ -33,6 +34,39 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     emit(ExpenseLoading());
     
     try {
+      // Check if we're in offline mode
+      if (OfflineService.isOfflineMode) {
+        // Use mock data for offline mode
+        await Future.delayed(const Duration(milliseconds: 500)); // Simulate loading
+        final mockData = OfflineService.getMockExpensesData();
+        final expensesData = mockData['expenses'] as List<dynamic>;
+        
+        // Create mock expense objects (simplified for demo)
+        final expenses = <ExpenseModel>[];
+        
+        for (final expenseData in expensesData) {
+          final expense = ExpenseModel(
+            id: expenseData['id'] as String,
+            userId: expenseData['userId'] as String,
+            tripId: expenseData['tripId'] as String?,
+            title: expenseData['title'] as String,
+            description: 'Offline expense entry',
+            amount: expenseData['amount'] as double,
+            currency: expenseData['currency'] as String,
+            category: _parseCategory(expenseData['category'] as String),
+            date: DateTime.parse(expenseData['date'] as String),
+            location: expenseData['location'] as String?,
+            createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+            updatedAt: DateTime.now().subtract(const Duration(hours: 1)),
+          );
+          expenses.add(expense);
+        }
+        
+        emit(ExpenseLoaded(expenses: expenses));
+        return;
+      }
+      
+      // Online mode - use repository
       final result = await _expenseRepository.getExpenses(
         userId: event.userId,
         tripId: event.tripId,
@@ -46,6 +80,25 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
       );
     } catch (e) {
       emit(const ExpenseError(message: 'An unexpected error occurred'));
+    }
+  }
+
+  ExpenseCategory _parseCategory(String category) {
+    switch (category.toLowerCase()) {
+      case 'accommodation':
+        return ExpenseCategory.accommodation;
+      case 'transportation':
+        return ExpenseCategory.transportation;
+      case 'food':
+        return ExpenseCategory.food;
+      case 'fuel':
+        return ExpenseCategory.fuel;
+      case 'entertainment':
+        return ExpenseCategory.entertainment;
+      case 'shopping':
+        return ExpenseCategory.shopping;
+      default:
+        return ExpenseCategory.miscellaneous;
     }
   }
 

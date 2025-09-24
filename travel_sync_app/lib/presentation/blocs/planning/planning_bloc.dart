@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../data/models/trip_plan_model.dart';
 import '../../../domain/repositories/planning_repository.dart';
+import '../../../core/services/offline_service.dart';
 import '../../../core/error/failures.dart';
 
 part 'planning_event.dart';
@@ -34,6 +35,39 @@ class PlanningBloc extends Bloc<PlanningEvent, PlanningState> {
     emit(PlanningLoading());
     
     try {
+      // Check if we're in offline mode
+      if (OfflineService.isOfflineMode) {
+        // Use mock data for offline mode
+        await Future.delayed(const Duration(milliseconds: 500)); // Simulate loading
+        final mockData = OfflineService.getMockPlanningData();
+        final plansData = mockData['tripPlans'] as List<dynamic>;
+        
+        // Create mock trip plan objects (simplified for demo)
+        final tripPlans = <TripPlanModel>[];
+        
+        for (final planData in plansData) {
+          final plan = TripPlanModel(
+            id: planData['id'] as String,
+            userId: planData['userId'] as String,
+            title: planData['title'] as String,
+            destination: planData['destination'] as String,
+            startDate: DateTime.parse(planData['startDate'] as String),
+            endDate: DateTime.parse(planData['endDate'] as String),
+            description: planData['description'] as String?,
+            budget: planData['budget'] as double?,
+            currency: 'INR',
+            status: _parseStatus(planData['status'] as String),
+            createdAt: DateTime.now().subtract(const Duration(days: 5)),
+            updatedAt: DateTime.now().subtract(const Duration(days: 1)),
+          );
+          tripPlans.add(plan);
+        }
+        
+        emit(PlanningLoaded(tripPlans: tripPlans));
+        return;
+      }
+      
+      // Online mode - use repository
       final result = await _planningRepository.getTripPlans(
         userId: event.userId,
         status: event.status,
@@ -47,6 +81,21 @@ class PlanningBloc extends Bloc<PlanningEvent, PlanningState> {
       );
     } catch (e) {
       emit(const PlanningError(message: 'An unexpected error occurred'));
+    }
+  }
+
+  TripPlanStatus _parseStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'draft':
+        return TripPlanStatus.draft;
+      case 'confirmed':
+        return TripPlanStatus.confirmed;
+      case 'completed':
+        return TripPlanStatus.completed;
+      case 'cancelled':
+        return TripPlanStatus.cancelled;
+      default:
+        return TripPlanStatus.draft;
     }
   }
 

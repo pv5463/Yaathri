@@ -35,7 +35,7 @@ class GlobalErrorHandler {
       '$type: $error',
       error: error,
       stackTrace: stack,
-      name: 'TravelSync',
+      name: 'Yaathri',
     );
   }
 

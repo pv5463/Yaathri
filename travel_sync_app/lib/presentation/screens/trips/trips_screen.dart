@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/offline_service.dart';
 import '../../blocs/trip/trip_bloc.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -167,7 +168,24 @@ class _TripsScreenState extends State<TripsScreen>
               .where((trip) => trip.status == TripStatus.inProgress)
               .toList();
 
-          if (activeTrips.isEmpty) {
+          // In offline mode, show current trip if available
+          if (OfflineService.isOfflineMode && state.currentTrip != null) {
+            return Column(
+              children: [
+                _buildOfflineStatusBanner(),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    children: [
+                      _buildTripCard(state.currentTrip!),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+
+          if (activeTrips.isEmpty && !OfflineService.isOfflineMode) {
             return _buildEmptyState(
               icon: Icons.location_off,
               title: 'No active trips',
@@ -177,11 +195,33 @@ class _TripsScreenState extends State<TripsScreen>
             );
           }
 
+          // Show offline message if no trips in offline mode
+          if (activeTrips.isEmpty && OfflineService.isOfflineMode) {
+            return Column(
+              children: [
+                _buildOfflineStatusBanner(),
+                Expanded(
+                  child: _buildEmptyState(
+                    icon: Icons.offline_bolt,
+                    title: 'Demo Mode',
+                    subtitle: 'Limited functionality in offline mode',
+                    actionText: 'View Demo Trip',
+                    onAction: () {
+                      // Show demo trip
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<TripBloc>().add(
-                const LoadTrips(userId: 'current_user_id'),
-              );
+              if (!OfflineService.isOfflineMode) {
+                context.read<TripBloc>().add(
+                  const LoadTrips(userId: 'current_user_id'),
+                );
+              }
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -195,6 +235,37 @@ class _TripsScreenState extends State<TripsScreen>
 
         return const SizedBox.shrink();
       },
+    );
+  }
+
+  Widget _buildOfflineStatusBanner() {
+    if (!OfflineService.isOfflineMode) return const SizedBox.shrink();
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.offline_bolt, color: Colors.orange, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Running in offline mode with demo data',
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

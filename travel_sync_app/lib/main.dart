@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/error/error_handler.dart';
 import 'core/di/injection_container.dart' as di;
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+import 'core/services/server_connectivity_manager.dart';
+import 'presentation/blocs/auth/auth_bloc.dart';
+import 'presentation/blocs/trip/trip_bloc.dart';
+import 'presentation/blocs/location/location_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,8 +24,20 @@ void main() async {
   // Initialize dependency injection
   try {
     await di.initializeDependencies();
+    debugPrint('Dependencies initialized successfully');
   } catch (e) {
     debugPrint('Failed to initialize dependencies: $e');
+    // Continue app startup even if some dependencies fail
+    // This prevents the app from getting stuck on loading screen
+  }
+  
+  // Initialize server connectivity monitoring
+  try {
+    final connectivityManager = ServerConnectivityManager.instance;
+    connectivityManager.startMonitoring();
+    debugPrint('Server connectivity monitoring started');
+  } catch (e) {
+    debugPrint('Failed to start connectivity monitoring: $e');
   }
   
   // Set preferred orientations
@@ -37,52 +56,33 @@ void main() async {
     ),
   );
   
-  runApp(const TravelSyncApp());
+  runApp(const YaathriApp());
 }
 
-class TravelSyncApp extends StatelessWidget {
-  const TravelSyncApp({super.key});
+class YaathriApp extends StatelessWidget {
+  const YaathriApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TravelSync',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.travel_explore,
-                size: 100,
-                color: Colors.blue,
-              ),
-              SizedBox(height: 20),
-              Text(
-                'TravelSync',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Travel Data Collection App',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (context) => di.getIt<AuthBloc>()..add(AuthCheckRequested()),
         ),
+        BlocProvider<TripBloc>(
+          create: (context) => di.getIt<TripBloc>(),
+        ),
+        BlocProvider<LocationBloc>(
+          create: (context) => di.getIt<LocationBloc>(),
+        ),
+      ],
+      child: MaterialApp.router(
+        title: 'Yaathri',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        routerConfig: AppRouter.router,
       ),
     );
   }
 }
+

@@ -53,9 +53,7 @@ class _ApiClient implements ApiClient {
     this._dio, {
     this.baseUrl,
     this.errorLogger,
-  }) {
-    baseUrl ??= 'http://localhost:5000/api/v1';
-  }
+  });
 
   final Dio _dio;
 

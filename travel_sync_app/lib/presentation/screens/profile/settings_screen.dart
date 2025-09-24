@@ -386,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showAboutDialog() {
     showAboutDialog(
       context: context,
-      applicationName: 'TravelSync',
+      applicationName: 'Yaathri',
       applicationVersion: '1.0.0',
       applicationIcon: Container(
         width: 64,
@@ -403,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       children: [
         const Text(
-          'TravelSync helps you track your journeys, plan trips, and manage travel expenses with ease.',
+          'Yaathri helps you track your journeys, plan trips, and manage travel expenses with ease.',
         ),
         const SizedBox(height: 16),
         const Text(

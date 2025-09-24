@@ -83,7 +83,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
-            'TravelSync',
+            'Yaathri',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,

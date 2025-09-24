@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../utils/server_test.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/auth/forgot_password_screen.dart';
@@ -24,6 +25,7 @@ import '../../presentation/screens/profile/settings_screen.dart';
 import '../../presentation/screens/profile/edit_profile_screen.dart';
 import '../../presentation/screens/media/camera_screen.dart';
 import '../../presentation/screens/media/gallery_screen.dart';
+import '../../presentation/screens/debug/server_diagnostics_screen.dart';
 import '../../presentation/blocs/auth/auth_bloc.dart';
 import '../di/injection_container.dart';
 
@@ -33,7 +35,7 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
-    redirect: _redirect,
+    // redirect: _redirect, // Temporarily disabled to let splash handle navigation
     routes: [
       // Splash and Onboarding
       GoRoute(
@@ -173,100 +175,136 @@ class AppRouter {
         path: '/gallery',
         builder: (context, state) => const GalleryScreen(),
       ),
+      
+      // Debug Routes
+      GoRoute(
+        path: '/debug/server',
+        builder: (context, state) => const ServerDiagnosticsScreen(),
+      ),
     ],
   );
 
-  static String? _redirect(BuildContext context, GoRouterState state) {
-    final authBloc = getIt<AuthBloc>();
-    final authState = authBloc.state;
-
-    final isOnAuthPage = [
-      '/login',
-      '/register',
-      '/forgot-password',
-      '/phone-login',
-      '/otp-verification',
-    ].contains(state.uri.toString());
-
-    final isOnOnboardingPage = [
-      '/splash',
-      '/onboarding',
-      '/consent',
-    ].contains(state.uri.toString());
-
-    // Check if user is authenticated
-    if (authState is AuthSuccess) {
-      // User is authenticated
-      if (isOnAuthPage || isOnOnboardingPage) {
-        return '/home';
-      }
-      return null; // No redirect needed
-    }
-
-    // User is not authenticated
-    if (authState is AuthUnauthenticated) {
-      if (!isOnAuthPage && !isOnOnboardingPage) {
-        return '/login';
-      }
-      return null; // No redirect needed
-    }
-
-    // Loading or initial state
-    if (state.uri.toString() == '/splash') {
-      return null; // Stay on splash
-    }
-
-    return '/splash'; // Default to splash
-  }
 }
 
-// Placeholder screens that need to be implemented
-class SplashScreen extends StatelessWidget {
+// Splash Screen with proper navigation logic
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Test server connectivity and offline mode (non-blocking)
+    ServerTest.testServerAndOfflineMode().catchError((e) {
+      print('Server test failed: $e');
+    });
+    
+    // Wait for a minimum splash duration
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted) return;
+    
+    // Check if user has completed onboarding
+    final hasCompletedOnboarding = await _checkOnboardingStatus();
+    
+    if (!mounted) return;
+    
+    // Navigate based on onboarding status
+    if (hasCompletedOnboarding) {
+      // Check authentication status
+      try {
+        final authBloc = getIt<AuthBloc>();
+        final authState = authBloc.state;
+        
+        print('Current auth state: ${authState.runtimeType}');
+        
+        if (authState is AuthSuccess) {
+          print('User is authenticated, navigating to home');
+          context.go('/home');
+        } else if (authState is AuthUnauthenticated) {
+          print('User is not authenticated, navigating to login');
+          context.go('/login');
+        } else {
+          // AuthInitial or AuthLoading state - default to login
+          print('Auth state is initial/loading, navigating to login');
+          context.go('/login');
+        }
+      } catch (e) {
+        print('Auth check failed: $e');
+        // Fallback to login if auth check fails
+        context.go('/login');
+      }
+    } else {
+      context.go('/onboarding');
+    }
+  }
+
+  Future<bool> _checkOnboardingStatus() async {
+    // Check if onboarding has been completed
+    // This could be stored in SharedPreferences or Hive
+    // For testing purposes, we'll assume onboarding is completed
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                borderRadius: BorderRadius.circular(30),
+                child: const Icon(
+                  Icons.travel_explore,
+                  size: 60,
+                  color: Colors.white,
+                ),
               ),
-              child: const Icon(
-                Icons.travel_explore,
-                size: 60,
-                color: Colors.white,
+              const SizedBox(height: 24),
+              const Text(
+                'Yaathri',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'TravelSync',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 8),
+              const Text(
+                'Your Travel Companion',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Your Travel Companion',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
+              const SizedBox(height: 48),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-            ),
-            const SizedBox(height: 48),
-            const CircularProgressIndicator(),
-          ],
+            ],
+          ),
         ),
       ),
     );

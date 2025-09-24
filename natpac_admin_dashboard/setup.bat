@@ -10,7 +10,7 @@ call npm install
 echo.
 echo Setting up environment file...
 if not exist .env.local (
-    echo NEXT_PUBLIC_API_URL=http://localhost:5000/api > .env.local
+    echo NEXT_PUBLIC_API_URL=https://yaathri.onrender.com/api > .env.local
     echo NEXT_PUBLIC_APP_NAME=NATPAC Admin Dashboard >> .env.local
     echo Environment file created successfully!
 ) else (

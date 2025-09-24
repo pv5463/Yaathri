@@ -14,10 +14,10 @@ void main() {
   group('TravelSync App Tests', () {
     testWidgets('App should load without errors', (WidgetTester tester) async {
       // Build our app and trigger a frame.
-      await tester.pumpWidget(const TravelSyncApp());
+      await tester.pumpWidget(const YaathriApp());
 
       // Verify that our app loads correctly
-      expect(find.text('TravelSync'), findsOneWidget);
+      expect(find.text('Yaathri'), findsOneWidget);
       expect(find.text('Travel Data Collection App'), findsOneWidget);
       expect(find.byIcon(Icons.travel_explore), findsOneWidget);
     });
@@ -25,12 +25,12 @@ void main() {
     testWidgets('App should display correct title', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: TravelSyncApp(),
+          home: YaathriApp(),
         ),
       );
 
       // Verify that the app builds successfully
-      expect(find.text('TravelSync'), findsOneWidget);
+      expect(find.text('Yaathri'), findsOneWidget);
       expect(find.text('Travel Data Collection App'), findsOneWidget);
     });
 

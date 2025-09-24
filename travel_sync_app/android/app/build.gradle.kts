@@ -42,6 +42,18 @@ android {
             isShrinkResources = false
         }
     }
+
+    // Fix for Windows file locking issues
+    packagingOptions {
+        pickFirst("**/libc++_shared.so")
+        pickFirst("**/libjsc.so")
+    }
+
+    // Lint options to prevent file locking issues
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
 
 flutter {

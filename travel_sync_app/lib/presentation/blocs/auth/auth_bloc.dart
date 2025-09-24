@@ -225,15 +225,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   String _mapFailureToMessage(Failure failure) {
     switch (failure.runtimeType) {
       case ServerFailure:
+        final serverFailure = failure as ServerFailure;
+        if (serverFailure.message?.contains('404') == true) {
+          return 'Service temporarily unavailable. Please try again later.';
+        } else if (serverFailure.message?.contains('500') == true) {
+          return 'Server is experiencing issues. Please try again in a few minutes.';
+        } else if (serverFailure.message?.contains('timeout') == true) {
+          return 'Request timed out. Please check your connection and try again.';
+        }
         return 'Server error occurred. Please try again later.';
       case NetworkFailure:
-        return 'Network error. Please check your connection.';
+        return 'No internet connection. Please check your network and try again.';
       case AuthFailure:
-        return failure.message ?? 'Authentication failed.';
+        final authFailure = failure as AuthFailure;
+        if (authFailure.message.contains('401')) {
+          return 'Invalid email or password. Please try again.';
+        } else if (authFailure.message.contains('403')) {
+          return 'Account access denied. Please contact support.';
+        }
+        return authFailure.message;
       case ValidationFailure:
-        return failure.message ?? 'Invalid input provided.';
+        return failure.message ?? 'Please check your input and try again.';
       default:
-        return 'An unexpected error occurred.';
+        return 'Something went wrong. Please try again.';
     }
   }
 }

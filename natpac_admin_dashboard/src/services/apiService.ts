@@ -1,12 +1,22 @@
 // API service for backend communication
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
 class ApiService {
+  private baseURL: string;
+  private token: string | null = null;
+
+  constructor() {
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://yaathri.onrender.com/api';
+    
+    // Get token from localStorage if available
+    if (typeof window !== 'undefined') {
+      this.token = localStorage.getItem('admin_token');
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${this.baseURL}${endpoint}`;
     
     const config: RequestInit = {
       headers: {
@@ -164,7 +174,7 @@ class ApiService {
 
   async downloadReport(reportId: string) {
     const token = localStorage.getItem('admin_token');
-    const url = `${API_BASE_URL}/reports/${reportId}/download`;
+    const url = `${this.baseURL}/reports/${reportId}/download`;
     
     const response = await fetch(url, {
       headers: {
@@ -214,7 +224,7 @@ class ApiService {
   // Export API calls
   async exportData(type: string, format: string, filters?: any) {
     const token = localStorage.getItem('admin_token');
-    const url = `${API_BASE_URL}/export/${type}`;
+    const url = `${this.baseURL}/export/${type}`;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -235,7 +245,7 @@ class ApiService {
   // Real-time data subscription
   subscribeToUpdates(callback: (data: any) => void) {
     // In a real implementation, this would use WebSocket or Server-Sent Events
-    const eventSource = new EventSource(`${API_BASE_URL}/stream`);
+    const eventSource = new EventSource(`${this.baseURL}/stream`);
     
     eventSource.onmessage = (event) => {
       try {

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/offline_service.dart';
+import '../../../core/config/environment.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../widgets/custom_button.dart';
 
@@ -215,6 +217,14 @@ class ProfileScreen extends StatelessWidget {
           subtitle: 'App version and information',
           onTap: () => context.push('/profile/about'),
         ),
+        // Debug option - only show in development or offline mode
+        if (OfflineService.isOfflineMode || EnvironmentConfig.isDevelopment)
+          _buildMenuItem(
+            icon: Icons.bug_report,
+            title: 'Server Diagnostics',
+            subtitle: 'Debug server connectivity issues',
+            onTap: () => context.push('/debug/server'),
+          ),
       ],
     );
   }

@@ -20,6 +20,7 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
     on<StartLocationTracking>(_onStartLocationTracking);
     on<StopLocationTracking>(_onStopLocationTracking);
     on<LocationUpdated>(_onLocationUpdated);
+    on<LocationTrackingError>(_onLocationTrackingError);
     on<CheckLocationService>(_onCheckLocationService);
     on<GetAddressFromCoordinates>(_onGetAddressFromCoordinates);
     on<GetCoordinatesFromAddress>(_onGetCoordinatesFromAddress);
@@ -223,7 +224,10 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
     }
   }
 
-  void _onLocationTrackingError(LocationTrackingError event) {
+  void _onLocationTrackingError(
+    LocationTrackingError event,
+    Emitter<LocationState> emit,
+  ) {
     emit(LocationError(message: event.message));
   }
 }

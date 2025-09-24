@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/offline_service.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/trip/trip_bloc.dart';
 import '../../widgets/custom_button.dart';
@@ -32,6 +34,57 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: _currentIndex == 0 ? AppBar(
+        title: const Text(
+          'Yaathri',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            letterSpacing: 0.5,
+          ),
+        ),
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+        ),
+        actions: [
+          if (OfflineService.isOfflineMode)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.offline_bolt, size: 16, color: Colors.white),
+                  SizedBox(width: 4),
+                  Text(
+                    'Demo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          IconButton(
+            onPressed: () {
+              // Navigate to notifications
+            },
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+          ),
+        ],
+      ) : null,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,

@@ -39,7 +39,7 @@
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="false" />
 
     <application
-        android:label="TravelSync"
+        android:label="Yaathri"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

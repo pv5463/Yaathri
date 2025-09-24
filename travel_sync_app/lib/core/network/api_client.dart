@@ -10,9 +10,9 @@ import '../../data/models/expense_model.dart';
 
 part 'api_client.g.dart';
 
-@RestApi(baseUrl: AppConfig.apiUrl)
+@RestApi()
 abstract class ApiClient {
-  factory ApiClient(Dio dio, {String baseUrl}) = _ApiClient;
+  factory ApiClient(Dio dio, {String? baseUrl}) = _ApiClient;
 
   // Authentication endpoints
   @POST('/auth/login')

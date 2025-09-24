@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import '../../../data/models/trip_model.dart';
 import '../../../domain/repositories/trip_repository.dart';
 import '../../../core/services/location_service.dart';
+import '../../../core/services/offline_service.dart';
 import '../../../core/error/failures.dart';
 
 part 'trip_event.dart';
@@ -39,6 +40,46 @@ class TripBloc extends Bloc<TripEvent, TripState> {
     emit(TripLoading());
     
     try {
+      // Check if we're in offline mode
+      if (OfflineService.isOfflineMode) {
+        // Use mock data for offline mode
+        await Future.delayed(const Duration(milliseconds: 500)); // Simulate loading
+        final mockData = OfflineService.getMockTripsData();
+        final currentTripData = mockData['currentTrip'] as Map<String, dynamic>?;
+        
+        // Create mock trip objects (simplified for demo)
+        final trips = <TripModel>[];
+        TripModel? currentTrip;
+        
+        // For offline mode, we'll create a simple current trip indicator
+        if (currentTripData != null) {
+          // Create a mock current trip for display
+          currentTrip = TripModel(
+            id: currentTripData['id'] as String,
+            userId: event.userId,
+            origin: currentTripData['origin'] as String,
+            destination: currentTripData['destination'] as String,
+            originLat: 28.6139,
+            originLng: 77.2090,
+            destinationLat: 28.6304,
+            destinationLng: 77.2177,
+            startTime: DateTime.now().subtract(const Duration(hours: 2)),
+            travelMode: TravelMode.driving,
+            tripType: TripType.business,
+            status: TripStatus.inProgress,
+            createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+            updatedAt: DateTime.now(),
+          );
+        }
+        
+        emit(TripLoaded(
+          trips: trips,
+          currentTrip: currentTrip,
+        ));
+        return;
+      }
+      
+      // Online mode - use repository
       final result = await _tripRepository.getTrips(
         userId: event.userId,
         limit: event.limit,
