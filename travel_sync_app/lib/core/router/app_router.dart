@@ -25,6 +25,7 @@ import '../../presentation/screens/profile/settings_screen.dart';
 import '../../presentation/screens/profile/edit_profile_screen.dart';
 import '../../presentation/screens/media/camera_screen.dart';
 import '../../presentation/screens/media/gallery_screen.dart';
+import '../../presentation/screens/monument_scanner/monument_scanner_screen.dart';
 import '../../presentation/screens/debug/server_diagnostics_screen.dart';
 import '../../presentation/blocs/auth/auth_bloc.dart';
 import '../di/injection_container.dart';
@@ -174,6 +175,10 @@ class AppRouter {
       GoRoute(
         path: '/gallery',
         builder: (context, state) => const GalleryScreen(),
+      ),
+      GoRoute(
+        path: '/monument-scanner',
+        builder: (context, state) => const MonumentScannerScreen(),
       ),
       
       // Debug Routes

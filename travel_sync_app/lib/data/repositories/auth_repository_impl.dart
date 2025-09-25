@@ -5,6 +5,7 @@ import '../../core/error/exceptions.dart';
 import '../../core/network/network_info.dart';
 import '../../core/services/offline_service.dart';
 import '../../core/services/server_connectivity_manager.dart';
+import '../../core/services/google_sign_in_service.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/local/local_data_source.dart';
 import '../datasources/remote/remote_data_source.dart';
@@ -106,18 +107,80 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, UserModel>> loginWithGoogle() async {
-    if (await networkInfo.isConnected) {
-      try {
-        final user = await remoteDataSource.socialLogin({
-          'provider': 'google',
-        });
-        await localDataSource.cacheUser(user);
-        return Right(user);
-      } on ServerException catch (e) {
-        return Left(ServerFailure(message: e.message));
-      }
-    } else {
-      return const Left(NetworkFailure());
+    print('\n🔐 === GOOGLE SIGN-IN ATTEMPT ===');
+    
+    try {
+      // First, authenticate with Google
+      final googleSignInService = GoogleSignInService();
+      final googleResult = await googleSignInService.signInWithGoogle();
+      
+      return googleResult.fold(
+        (failure) {
+          print('❌ Google Sign-In failed: ${failure.message}');
+          return Left(failure);
+        },
+        (googleData) async {
+          print('✅ Google Sign-In successful, attempting backend authentication...');
+          
+          // Check server connectivity
+          final connectivityManager = ServerConnectivityManager.instance;
+          final isServerAvailable = await connectivityManager.checkConnectivity();
+          
+          if (isServerAvailable && connectivityManager.workingServerUrl != null) {
+            try {
+              print('🌐 Attempting backend authentication with data: ${googleData.keys.join(', ')}');
+              // Try to authenticate with backend using Google credentials
+              final user = await remoteDataSource.socialLogin(googleData);
+              await localDataSource.cacheUser(user);
+              print('✅ Backend authentication successful');
+              return Right(user);
+            } on ServerException catch (e) {
+              print('❌ Backend authentication failed: ${e.message}');
+              print('📊 Server response details: ${e.toString()}');
+              print('🔄 Creating offline user from Google data...');
+              return _createOfflineUserFromGoogle(googleData);
+            } catch (e) {
+              print('❌ Unexpected backend error: $e');
+              print('🔄 Falling back to offline mode...');
+              return _createOfflineUserFromGoogle(googleData);
+            }
+          } else {
+            print('📱 Server unavailable, creating offline user from Google data...');
+            return _createOfflineUserFromGoogle(googleData);
+          }
+        },
+      );
+    } catch (e) {
+      print('❌ Unexpected Google Sign-In error: $e');
+      return Left(AuthFailure(message: 'Google Sign-In failed: $e'));
+    }
+  }
+  
+  Future<Either<Failure, UserModel>> _createOfflineUserFromGoogle(Map<String, dynamic> googleData) async {
+    try {
+      OfflineService.enableOfflineMode();
+      
+      // Extract user data from the nested structure
+      final userData = googleData['userData'] as Map<String, dynamic>? ?? {};
+      
+      // Create a user model from Google data
+      final user = UserModel(
+        id: userData['id'] ?? 'google_${DateTime.now().millisecondsSinceEpoch}',
+        email: userData['email'] ?? '',
+        fullName: userData['name'] ?? 'Google User',
+        profilePicture: userData['picture'],
+        isEmailVerified: true, // Google accounts are verified
+        authProvider: 'google',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      await localDataSource.cacheUser(user);
+      print('✅ Offline Google user created successfully');
+      return Right(user);
+    } catch (e) {
+      print('❌ Failed to create offline Google user: $e');
+      return Left(AuthFailure(message: 'Failed to create offline user: $e'));
     }
   }
 

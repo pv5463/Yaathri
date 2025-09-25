@@ -189,6 +189,15 @@ router.post('/social-login', [
     .withMessage('Token is required'),
 ], validateRequest, authController.socialLogin);
 
+// Add a simple test endpoint to verify routes are working
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Auth routes are working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 /**
  * @swagger
  * /api/v1/auth/phone-login:

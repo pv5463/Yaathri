@@ -19,8 +19,10 @@ const verifyGoogleToken = async (token) => {
       user: {
         id: payload.sub,
         email: payload.email,
+        name: payload.name,
         firstName: payload.given_name,
         lastName: payload.family_name,
+        picture: payload.picture,
         profilePicture: payload.picture,
         emailVerified: payload.email_verified,
       },

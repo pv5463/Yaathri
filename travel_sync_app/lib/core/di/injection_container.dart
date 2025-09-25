@@ -6,6 +6,8 @@ import 'package:hive/hive.dart';
 import '../config/app_config.dart';
 import '../services/location_service.dart';
 import '../services/background_service.dart';
+import '../services/monument_scanner_service.dart';
+import '../services/google_sign_in_service.dart';
 import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../../data/datasources/local/local_data_source.dart';
@@ -40,6 +42,8 @@ Future<void> initializeDependencies() async {
     // Services
     getIt.registerLazySingleton<LocationService>(() => LocationService());
     getIt.registerLazySingleton<BackgroundService>(() => BackgroundService());
+    getIt.registerLazySingleton<MonumentScannerService>(() => MonumentScannerService());
+    getIt.registerLazySingleton<GoogleSignInService>(() => GoogleSignInService());
 
     // Data sources
     getIt.registerLazySingleton<LocalDataSource>(() => LocalDataSourceImpl(

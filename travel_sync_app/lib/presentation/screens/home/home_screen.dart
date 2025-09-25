@@ -299,6 +299,25 @@ class HomeTabScreen extends StatelessWidget {
             Expanded(
               child: _buildActionCard(
                 context,
+                icon: Icons.account_balance,
+                title: 'Scan Monument',
+                subtitle: 'AI recognition',
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF00BCD4), Color(0xFF0097A7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                onTap: () => context.push('/monument-scanner'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                context,
                 icon: Icons.photo_camera,
                 title: 'Add Memory',
                 subtitle: 'Capture moment',
@@ -309,6 +328,10 @@ class HomeTabScreen extends StatelessWidget {
                 ),
                 onTap: () => context.push('/add-memory'),
               ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Container(), // Empty space for symmetry
             ),
           ],
         ),

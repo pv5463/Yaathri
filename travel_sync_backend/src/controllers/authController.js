@@ -114,28 +114,33 @@ class AuthController {
   // Social media login
   async socialLogin(req, res, next) {
     try {
+      logger.info(`Social login attempt - Provider: ${req.body.provider}, Body:`, JSON.stringify(req.body, null, 2));
       const { provider, token, userData } = req.body;
 
       let socialUserData;
 
       // Verify token based on provider
+      let verificationResult;
       switch (provider) {
         case 'google':
-          socialUserData = await verifyGoogleToken(token);
+          verificationResult = await verifyGoogleToken(token);
           break;
         case 'facebook':
-          socialUserData = await verifyFacebookToken(token);
+          verificationResult = await verifyFacebookToken(token);
           break;
         case 'apple':
-          socialUserData = await verifyAppleToken(token);
+          verificationResult = await verifyAppleToken(token);
           break;
         default:
           return next(new AppError('Invalid social provider', 400));
       }
 
-      if (!socialUserData) {
-        return next(new AppError('Invalid social token', 400));
+      if (!verificationResult || !verificationResult.success) {
+        logger.error(`${provider} token verification failed:`, verificationResult?.error);
+        return next(new AppError(`Invalid ${provider} token`, 400));
       }
+
+      socialUserData = verificationResult.user;
 
       // Check if user exists
       let user = await User.findByEmail(socialUserData.email);
@@ -151,10 +156,14 @@ class AuthController {
         await user.$query().patch({ socialProviders });
       } else {
         // Create new user from social data
+        const fullName = socialUserData.name || 
+                        `${socialUserData.firstName || ''} ${socialUserData.lastName || ''}`.trim() ||
+                        socialUserData.email?.split('@')[0] || 'User';
+        
         const newUserData = {
           email: socialUserData.email,
-          fullName: socialUserData.name,
-          profileImageUrl: socialUserData.picture,
+          fullName: fullName,
+          profileImageUrl: socialUserData.picture || socialUserData.profilePicture,
           isVerified: true,
           consentGiven: true, // Assumed for social login
           socialProviders: {
