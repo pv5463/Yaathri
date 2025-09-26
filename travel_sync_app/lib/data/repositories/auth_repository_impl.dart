@@ -168,9 +168,9 @@ class AuthRepositoryImpl implements AuthRepository {
         id: userData['id'] ?? 'google_${DateTime.now().millisecondsSinceEpoch}',
         email: userData['email'] ?? '',
         fullName: userData['name'] ?? 'Google User',
-        profilePicture: userData['picture'],
-        isEmailVerified: true, // Google accounts are verified
-        authProvider: 'google',
+        profileImageUrl: userData['picture'],
+        consentGiven: true, // Assumed for Google sign-in
+        isVerified: true, // Google accounts are verified
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -381,8 +381,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Stream<AuthState> get authStateChanges {
     // This would typically be implemented with a StreamController
-    // For now, return a simple stream
-    return Stream.value(AuthState.unauthenticated);
+    // For now, return a simple stream that indicates authentication status
+    return Stream.fromFuture(isLoggedIn().then((result) => result.fold(
+      (failure) => AuthState.unauthenticated,
+      (isLoggedIn) => isLoggedIn ? AuthState.authenticated : AuthState.unauthenticated,
+    )));
   }
 
   Future<Either<Failure, bool>> isLoggedIn() async {

@@ -8,28 +8,31 @@ class EnvironmentConfig {
   static String get baseUrl {
     switch (_currentEnvironment) {
       case Environment.development:
-        return 'http://localhost:5000/api';
+        return 'http://localhost:5000';
       case Environment.staging:
-        return 'https://yaathri-staging.onrender.com/api';
+        return 'https://yaathri-staging.onrender.com';
       case Environment.production:
-        return 'https://yaathri.onrender.com/api';
+        return 'https://yaathri.onrender.com';
     }
   }
   
   // Fallback URLs in case primary server is down
   static List<String> get fallbackUrls => [
-    'http://localhost:5000/api', // Local development server
-    'https://yaathri-staging.onrender.com/api',
-    'https://yaathri-backend.onrender.com/api',
+    'http://localhost:5000', // Local development server
+    'https://yaathri-staging.onrender.com',
+    'https://yaathri-backend.onrender.com',
   ];
   
-  static String get apiUrl => '$baseUrl/v1';
+  static String get apiUrl => '$baseUrl/api/v1';
   
   // API endpoint paths
   static String get authEndpoint => '$apiUrl/auth';
   static String get usersEndpoint => '$apiUrl/users';
   static String get tripsEndpoint => '$apiUrl/trips';
   static String get expensesEndpoint => '$apiUrl/expenses';
+  
+  // Health check endpoint
+  static String get healthEndpoint => '$baseUrl/health';
   
   static bool get isProduction => _currentEnvironment == Environment.production;
   static bool get isDevelopment => _currentEnvironment == Environment.development;

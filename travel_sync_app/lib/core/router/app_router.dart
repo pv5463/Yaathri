@@ -26,7 +26,11 @@ import '../../presentation/screens/profile/edit_profile_screen.dart';
 import '../../presentation/screens/media/camera_screen.dart';
 import '../../presentation/screens/media/gallery_screen.dart';
 import '../../presentation/screens/monument_scanner/monument_scanner_screen.dart';
+import '../../presentation/screens/scanner/qr_scanner_screen.dart';
+import '../../presentation/screens/scanner/document_scanner_screen.dart';
 import '../../presentation/screens/debug/server_diagnostics_screen.dart';
+import '../../presentation/screens/activity/activity_screen.dart';
+import '../../presentation/screens/notifications/notifications_screen.dart';
 import '../../presentation/blocs/auth/auth_bloc.dart';
 import '../di/injection_container.dart';
 
@@ -179,6 +183,42 @@ class AppRouter {
       GoRoute(
         path: '/monument-scanner',
         builder: (context, state) => const MonumentScannerScreen(),
+      ),
+      GoRoute(
+        path: '/qr-scanner',
+        builder: (context, state) => const QRScannerScreen(),
+      ),
+      GoRoute(
+        path: '/document-scanner',
+        builder: (context, state) => const DocumentScannerScreen(),
+      ),
+      
+      // Activity and Notifications Routes
+      GoRoute(
+        path: '/activity',
+        builder: (context, state) => const ActivityScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      
+      // Additional Routes for Home Screen Actions
+      GoRoute(
+        path: '/plan-trip',
+        builder: (context, state) => const CreatePlanScreen(),
+      ),
+      GoRoute(
+        path: '/add-expense',
+        builder: (context, state) => const AddExpenseScreen(),
+      ),
+      GoRoute(
+        path: '/add-memory',
+        builder: (context, state) => const CameraScreen(),
+      ),
+      GoRoute(
+        path: '/start-trip',
+        builder: (context, state) => const StartTripScreen(),
       ),
       
       // Debug Routes

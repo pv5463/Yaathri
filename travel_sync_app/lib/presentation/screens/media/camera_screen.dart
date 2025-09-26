@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:camera/camera.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'dart:io';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/camera_permission_service.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/loading_widget.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -12,9 +18,89 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
+  CameraController? _controller;
+  Future<void>? _initializeControllerFuture;
+  final CameraPermissionService _permissionService = CameraPermissionService();
+  
   bool _isFlashOn = false;
   bool _isFrontCamera = false;
   String _selectedMode = 'photo';
+  bool _isInitializing = true;
+  String? _errorMessage;
+  bool _isCapturing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeCamera() async {
+    try {
+      setState(() {
+        _isInitializing = true;
+        _errorMessage = null;
+      });
+
+      // Initialize camera permission service
+      await _permissionService.initialize();
+      
+      // Request camera permissions
+      final permissionResult = await _permissionService.requestAllCameraPermissions(
+        includeVideo: true,
+        includeStorage: true,
+      );
+      
+      if (!permissionResult.canUseCamera) {
+        setState(() {
+          _errorMessage = 'Camera permission is required to use this feature';
+          _isInitializing = false;
+        });
+        return;
+      }
+
+      // Get camera
+      final camera = _isFrontCamera 
+          ? _permissionService.frontCamera 
+          : _permissionService.primaryCamera;
+      
+      if (camera == null) {
+        setState(() {
+          _errorMessage = 'No camera available on this device';
+          _isInitializing = false;
+        });
+        return;
+      }
+
+      // Initialize camera controller
+      _controller = CameraController(
+        camera,
+        ResolutionPreset.high,
+        enableAudio: _selectedMode == 'video',
+      );
+
+      _initializeControllerFuture = _controller!.initialize();
+      await _initializeControllerFuture;
+
+      setState(() {
+        _isInitializing = false;
+      });
+      
+      print('✅ Camera initialized successfully');
+    } catch (e) {
+      print('❌ Camera initialization failed: $e');
+      setState(() {
+        _errorMessage = 'Failed to initialize camera: $e';
+        _isInitializing = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,19 +108,8 @@ class _CameraScreenState extends State<CameraScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview placeholder
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.black,
-            child: const Center(
-              child: Icon(
-                Icons.camera_alt,
-                size: 100,
-                color: Colors.white54,
-              ),
-            ),
-          ),
+          // Camera preview or error/loading state
+          _buildCameraPreview(),
           
           // Top controls
           SafeArea(
@@ -180,20 +255,35 @@ class _CameraScreenState extends State<CameraScreen> {
 
         // Capture button
         GestureDetector(
-          onTap: _capturePhoto,
+          onTap: _isCapturing ? null : _capturePhoto,
           child: Container(
             width: 80,
             height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
+              border: Border.all(
+                color: _isCapturing ? Colors.grey : Colors.white, 
+                width: 4,
+              ),
             ),
             child: Container(
               margin: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: _isCapturing ? Colors.grey : Colors.white,
                 shape: BoxShape.circle,
               ),
+              child: _isCapturing 
+                  ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ),
         ),
@@ -219,26 +309,146 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  void _toggleFlash() {
-    setState(() {
-      _isFlashOn = !_isFlashOn;
-    });
+  Future<void> _toggleFlash() async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    
+    try {
+      final flashMode = _isFlashOn ? FlashMode.off : FlashMode.torch;
+      await _controller!.setFlashMode(flashMode);
+      
+      setState(() {
+        _isFlashOn = !_isFlashOn;
+      });
+    } catch (e) {
+      print('❌ Error toggling flash: $e');
+    }
   }
 
-  void _flipCamera() {
+  Future<void> _flipCamera() async {
     setState(() {
       _isFrontCamera = !_isFrontCamera;
     });
+    
+    // Reinitialize camera with new direction
+    await _controller?.dispose();
+    await _initializeCamera();
   }
 
-  void _capturePhoto() {
-    // Show capture animation
-    _showCaptureAnimation();
-    
-    // Simulate photo capture
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _showPhotoPreview();
-    });
+  Widget _buildCameraPreview() {
+    if (_isInitializing) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 16),
+              Text(
+                'Initializing Camera...',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.camera_alt_outlined,
+                size: 80,
+                color: Colors.white54,
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+              CustomButton(
+                text: 'Retry',
+                onPressed: _initializeCamera,
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              const SizedBox(height: 16),
+              CustomButton(
+                text: 'Open Settings',
+                onPressed: () => _permissionService.openAppSettings(),
+                backgroundColor: Colors.white24,
+                textColor: Colors.white,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black,
+        child: const Center(
+          child: Icon(
+            Icons.camera_alt,
+            size: 100,
+            color: Colors.white54,
+          ),
+        ),
+      );
+    }
+
+    return CameraPreview(_controller!);
+  }
+
+  Future<void> _capturePhoto() async {
+    if (_controller == null || !_controller!.value.isInitialized || _isCapturing) {
+      return;
+    }
+
+    try {
+      setState(() {
+        _isCapturing = true;
+      });
+
+      // Show capture animation
+      _showCaptureAnimation();
+      
+      // Capture the image
+      final XFile image = await _controller!.takePicture();
+      
+      // Show photo preview
+      await Future.delayed(const Duration(milliseconds: 200));
+      _showPhotoPreview(image.path);
+      
+    } catch (e) {
+      print('❌ Error capturing photo: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to capture photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isCapturing = false;
+      });
+    }
   }
 
   void _showCaptureAnimation() {
@@ -255,7 +465,7 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  void _showPhotoPreview() {
+  void _showPhotoPreview(String imagePath) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
@@ -282,8 +492,13 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
                 const Spacer(),
                 IconButton(
-                  onPressed: () {
-                    // Share photo
+                  onPressed: () async {
+                    // TODO: Implement photo sharing
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Photo sharing feature coming soon!'),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.share, color: Colors.white),
                 ),
@@ -296,11 +511,20 @@ class _CameraScreenState extends State<CameraScreen> {
                   color: Colors.grey[800],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.photo,
-                    size: 100,
-                    color: Colors.white54,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(imagePath),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(
+                          Icons.error,
+                          size: 100,
+                          color: Colors.white54,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -320,15 +544,10 @@ class _CameraScreenState extends State<CameraScreen> {
                 Expanded(
                   child: CustomButton(
                     text: 'Save',
-                    onPressed: () {
+                    onPressed: () async {
+                      await _savePhoto(imagePath);
                       Navigator.of(context).pop();
                       context.pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Photo saved successfully!'),
-                          backgroundColor: AppTheme.successColor,
-                        ),
-                      );
                     },
                     backgroundColor: AppTheme.primaryColor,
                   ),
@@ -339,5 +558,35 @@ class _CameraScreenState extends State<CameraScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _savePhoto(String imagePath) async {
+    try {
+      // Get the app's document directory
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'yaathri_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final savedPath = path.join(directory.path, fileName);
+      
+      // Copy the file to the app's directory
+      final File imageFile = File(imagePath);
+      await imageFile.copy(savedPath);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo saved successfully!'),
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+      
+      print('✅ Photo saved to: $savedPath');
+    } catch (e) {
+      print('❌ Error saving photo: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

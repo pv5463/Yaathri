@@ -3,7 +3,7 @@ import '../config/environment.dart';
 
 class RenderUrlTest {
   static Future<void> testYaathriRenderUrl() async {
-    const String renderUrl = 'https://yaathri.onrender.com/api';
+    const String renderUrl = 'https://yaathri.onrender.com';
     
     print('\n🔍 === TESTING YAATHRI RENDER URL ===');
     print('URL: $renderUrl');
@@ -168,7 +168,7 @@ class RenderUrlTest {
   }
   
   static Future<void> wakeUpRenderServer() async {
-    const String renderUrl = 'https://yaathri.onrender.com/api';
+    const String renderUrl = 'https://yaathri.onrender.com';
     
     print('\n🌅 === WAKING UP RENDER SERVER ===');
     print('Sending wake-up request to: $renderUrl');
@@ -190,6 +190,50 @@ class RenderUrlTest {
     } catch (e) {
       print('❌ Failed to wake up server: $e');
       print('💡 Try again in a few minutes or check Render dashboard');
+    }
+  }
+  
+  /// Test the health endpoint specifically
+  static Future<void> testHealthEndpoint() async {
+    const String healthUrl = 'https://yaathri.onrender.com/health';
+    
+    print('\n🏥 === TESTING HEALTH ENDPOINT ===');
+    print('Health URL: $healthUrl');
+    print('Expected: Should return 200 with server status');
+    
+    final dio = Dio();
+    dio.options.connectTimeout = const Duration(seconds: 30);
+    dio.options.receiveTimeout = const Duration(seconds: 30);
+    dio.options.headers = {
+      'User-Agent': 'TravelSync-Flutter-App/1.0',
+      'Accept': 'application/json',
+    };
+    
+    try {
+      final response = await dio.get(healthUrl);
+      
+      print('✅ Health check successful!');
+      print('📊 Status Code: ${response.statusCode}');
+      print('📄 Response: ${response.data}');
+      
+      if (response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        if (data.containsKey('success') && data['success'] == true) {
+          print('🎉 Server is healthy and running properly!');
+        }
+      }
+      
+    } catch (e) {
+      if (e is DioException) {
+        print('❌ Health check failed: ${e.type}');
+        print('📝 Message: ${e.message}');
+        if (e.response?.statusCode != null) {
+          print('📊 Status Code: ${e.response!.statusCode}');
+          print('📄 Response: ${e.response!.data}');
+        }
+      } else {
+        print('❌ Unexpected error: $e');
+      }
     }
   }
 }

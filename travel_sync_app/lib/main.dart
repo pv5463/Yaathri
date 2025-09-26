@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'core/error/error_handler.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/router/app_router.dart';
@@ -15,6 +14,8 @@ import 'presentation/blocs/location/location_bloc.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Firebase removed - using PostgreSQL backend directly
+  debugPrint('Yaathri app starting with PostgreSQL backend...');
   // Initialize global error handling
   GlobalErrorHandler.initialize();
   

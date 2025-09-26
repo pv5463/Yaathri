@@ -77,9 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           IconButton(
-            onPressed: () {
-              // Navigate to notifications
-            },
+            onPressed: () => context.push('/notifications'),
             icon: const Icon(Icons.notifications_outlined),
             tooltip: 'Notifications',
           ),
@@ -225,9 +223,7 @@ class HomeTabScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: IconButton(
-                onPressed: () {
-                  // Navigate to notifications
-                },
+                onPressed: () => context.push('/notifications'),
                 icon: const Icon(
                   Icons.notifications_outlined,
                   color: Colors.white,

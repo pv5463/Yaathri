@@ -105,8 +105,9 @@ class ServerConnectivityManager {
       EnvironmentConfig.baseUrl,
       ...EnvironmentConfig.fallbackUrls,
       // Add local development server as fallback
-      'http://localhost:5000/api',
-      'http://127.0.0.1:5000/api',
+      'http://localhost:5000',
+      'http://127.0.0.1:5000',
+      'https://yaathri.onrender.com',
     ];
     
     print('🔍 Testing ${urlsToTest.length} server URLs...');
@@ -137,7 +138,6 @@ class ServerConnectivityManager {
       final endpointsToTest = [
         '', // Root endpoint
         '/health', // Health check
-        '/api/health', // API health check
         '/status', // Status endpoint
       ];
       
